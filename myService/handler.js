@@ -8,7 +8,10 @@
 'use strict';
 var AWS = require('aws-sdk'); 
 
+var tools = require('./tools');
+
 var s3 = new AWS.S3(); 
+
 
 module.exports.hello = (event, context, callback) => {
   var response = {
@@ -16,24 +19,41 @@ module.exports.hello = (event, context, callback) => {
   };
   
   // learn: event  = json
-  console.log('evnt', event, event.key1);
-
 
   var region = 'us-west1';
 
   var params = {
-    Bucket: 'familynavi', 
-    Key: 'myKey',
-    ACL: 'public-read', 
-    Body: 'Hello!'
+    Bucket: event.bucket || 'familynavi', 
+    Key: event.folder + '/' + event.file,
+    ACL: 'public-read'
   };
-  params.Key = 'txt/'+new Date().getTime() + '.txt';
 
-  var url = ' https://s3.amazonaws.com/'+params.Bucket+'/' + params.Key;
+  //support text files
+  if (event.text){
+      params.Body = event.text;
+      params.ContentType = 'text/plain';
+  }
+
+  //support images
+  if (event.base64){
+      var imageBuffer = tools.decodeBase64Image(event.base64);
+      console.log('filetype', imageBuffer.type);
+      params.ContentType = imageBuffer.type;
+      //if png make sure file ending is png
+      if (imageBuffer.type === 'image/png'){
+          if (params.Key.substr(-3) !== 'png'){
+              params.Key += '.png';
+          }
+      }
+      params.Body = imageBuffer.data;
+  }
+
+  //params.Key = 'txt/'+new Date().getTime() + '.txt';
+
 
   response.body = JSON.stringify({
-      message: 'Uploaded ' + params.Key + ' to Bucket ' + params.Bucket + ' with Body ' + params.Body + ' accessible at ' + url,
-      input: event
+      message: 'Uploaded ' + params.Key + ' to Bucket ' + params.Bucket + ' with Body of ' + params.Body.length + ' bytes',
+      url: 'https://s3.amazonaws.com/'+params.Bucket+'/' + params.Key
   }); 
 
 
@@ -44,7 +64,7 @@ module.exports.hello = (event, context, callback) => {
           console.log(err)
           response.statusCode = 400;
       } else {
-          console.log("Successfully uploaded data to " + url);   
+          console.log("Successfully uploaded data to " + response.body.url);   
       }
 
       callback(null, response);
