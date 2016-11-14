@@ -48,9 +48,6 @@ module.exports.hello = (event, context, callback) => {
       params.Body = imageBuffer.data;
   }
 
-  //params.Key = 'txt/'+new Date().getTime() + '.txt';
-
-
   response.body = JSON.stringify({
       message: 'Uploaded ' + params.Key + ' to Bucket ' + params.Bucket + ' with Body of ' + params.Body.length + ' bytes',
       url: 'https://s3.amazonaws.com/'+params.Bucket+'/' + params.Key
@@ -61,10 +58,13 @@ module.exports.hello = (event, context, callback) => {
   s3.putObject(params, (err, data) => {
 
       if (err) {       
-          console.log(err)
+          console.log(err);
+          response.message = 'An error has occured';
+          delete response.url;
+          response.err = err;
           response.statusCode = 400;
       } else {
-          console.log("Successfully uploaded data to " + response.body.url);   
+          console.log("Successfully uploaded data to " + 'https://s3.amazonaws.com/'+params.Bucket+'/' + params.Key);   
       }
 
       callback(null, response);
