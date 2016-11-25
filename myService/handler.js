@@ -9,16 +9,41 @@
 var AWS = require('aws-sdk'); 
 
 var tools = require('./tools');
-
 var s3 = new AWS.S3(); 
 
+/**
+ *  Test serverless invoke local --function uploadURI  --path  event.2.json  -l true
+ * 
+ */
+module.exports.uploadURI = (event, context, callback) => {
+    var response = {};
+    var params = {
+        Bucket: event.bucket || 'familynavi', 
+        Key: event.folder + '/' + event.file,
+        ACL: 'public-read',
+        Expires: 60
+    };
+    s3.getSignedUrl('putObject', params, function (err, url) {
+        console.log('The URL is', url);
+        if (err){
+            response.message = 'An error has occured';
+            response.err = err;
+            response.statusCode = 400;
+        } else {
+            response.statusCode = 200;
+            response.url = url;
+        }
+        callback(null, response);
+
+    });
+};
 
 module.exports.hello = (event, context, callback) => {
   var response = {
     statusCode: 200
   };
   
-  // learn: event  = json
+  // learn: event  = json or binary file
 
   var region = 'us-west1';
 
@@ -28,10 +53,29 @@ module.exports.hello = (event, context, callback) => {
     ACL: 'public-read'
   };
 
+  //support binary files
+//   if (typeof event === 'string'){    
+//     console.log('type', event.substr(0,10));  
+//     params.Body = new Buffer(event, "binary");
+//     params.Key = 'binary/' + Math.round(Math.random()*1000000);
+//     if (event.substr(0,10).indexOf('PNG') > -1){
+//         params.Key += '.png';
+//         params.ContentType = 'image/png';
+//     }
+//   }
+
+
   //support text files
   if (event.text){
       params.Body = event.text;
       params.ContentType = 'text/plain';
+  }
+
+
+  //support jsont files
+  if (event.json){
+      params.Body = JSON.stringify(event.json);
+      params.ContentType = 'application/json';
   }
 
   //support images

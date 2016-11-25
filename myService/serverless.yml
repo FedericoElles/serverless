@@ -64,6 +64,12 @@ functions:
       - http:
           path: txt/create
           method: post
+  uploadURI:
+    handler: handler.uploadURI
+    events: # All events are here
+      - http:
+          path: txt/uploadURI
+          method: post
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

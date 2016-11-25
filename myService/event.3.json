@@ -1,0 +1,9 @@
+{
+  "bucket": "familynavi",
+  "folder": "uploads",
+  "file": "123123.json",
+  "json": {
+    "user": "fritz",
+    "items": [1,2,3,4]
+  }
+}
