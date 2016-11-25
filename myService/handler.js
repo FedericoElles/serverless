@@ -11,6 +11,22 @@ var AWS = require('aws-sdk');
 var tools = require('./tools');
 var s3 = new AWS.S3(); 
 
+var bodyCache;
+function prop(event, property){
+    if (event.body){
+        if (typeof bodyCache === 'undefined'){
+            if (typeof event.body === 'string'){
+                bodyCache = JSON.parse(event.body);
+            } else {
+                bodyCache = event.body;
+            }
+        }
+        return bodyCache[property];
+    } else {
+        return event[property];
+    }
+}
+
 /**
  *  Test serverless invoke local --function uploadURI  --path  event.2.json  -l true
  * 
@@ -18,8 +34,8 @@ var s3 = new AWS.S3();
 module.exports.uploadURI = (event, context, callback) => {
     var response = {};
     var params = {
-        Bucket: event.bucket || 'familynavi', 
-        Key: event.folder + '/' + event.file,
+        Bucket: prop(event,'bucket') || 'familynavi', 
+        Key: prop(event,'folder') + '/' + prop(event,'file'),
         ACL: 'public-read',
         Expires: 60
     };
@@ -48,8 +64,8 @@ module.exports.hello = (event, context, callback) => {
   var region = 'us-west1';
 
   var params = {
-    Bucket: event.bucket || 'familynavi', 
-    Key: event.folder + '/' + event.file,
+    Bucket: prop(event, 'bucket') || 'familynavi', 
+    Key: prop(event, 'folder') + '/' + prop(event, 'file'),
     ACL: 'public-read'
   };
 
@@ -66,21 +82,21 @@ module.exports.hello = (event, context, callback) => {
 
 
   //support text files
-  if (event.text){
-      params.Body = event.text;
+  if (prop(event,'text')){
+      params.Body = prop(event,'text');
       params.ContentType = 'text/plain';
   }
 
 
   //support jsont files
-  if (event.json){
-      params.Body = JSON.stringify(event.json);
+  if (prop(event,'json')){
+      params.Body = JSON.stringify(prop(event,'json'));
       params.ContentType = 'application/json';
   }
 
   //support images
-  if (event.base64){
-      var imageBuffer = tools.decodeBase64Image(event.base64);
+  if (prop(event,'base64')){
+      var imageBuffer = tools.decodeBase64Image(prop(event,'base64'));
       console.log('filetype', imageBuffer.type);
       params.ContentType = imageBuffer.type;
       //if png make sure file ending is png
@@ -93,8 +109,9 @@ module.exports.hello = (event, context, callback) => {
   }
 
   response.body = JSON.stringify({
-      message: 'Uploaded ' + params.Key + ' to Bucket ' + params.Bucket + ' with Body of ' + params.Body.length + ' bytes',
-      url: 'https://s3.amazonaws.com/'+params.Bucket+'/' + params.Key
+      message: 'Uploaded ' + params.Key + ' to Bucket ' + params.Bucket + ' with Body of ' + (params.Body ? params.Body.length : '0') + ' bytes',
+      url: 'https://s3.amazonaws.com/'+params.Bucket+'/' + params.Key,
+      event: event.body ? event.body : event
   }); 
 
 
